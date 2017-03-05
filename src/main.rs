@@ -7,11 +7,12 @@ use std::fs::File;
 use std::io::prelude::*;
 
 pub fn main(){
+//   let (tx, rx) = mpsc::channel();
     let f = File::open("unsorted.txt").unwrap();
 
     let mut input_stream = 
             process_as_iterator(DealWithStderr::Parent,
-                f
+                Some(f)
              ,  streams::sort_cmd(&vec![])
              ).expect("process iterator failure");
 

@@ -16,28 +16,38 @@ pub enum DealWithStderr {
     LogToFile(Box<Path>),
 }
 
+// Provide an iterator interface to a process
+//
 // Start a process for the given exe and args.
-// Feed the input to its stdin (in a separate thread)
+// Return a buffer or the error encountered when starting the process
+//
+// Feed input (if given) to its stdin (in a separate thread)
 // Return a reader of the stdout
 //
-// Feeding stdin, checking stderr, and wiating for the exit code are done on separate threads
-// If any of these have failures, including if the proces has a non-zero exit code,
+// Check stder, and wiat for the exit code on separate threads
+//
+// If any of the threads have failures, including if the proces has a non-zero exit code,
 // panic in the that separate thread.
 // TODO: the caller should be signalled about the error
-pub fn process_as_iterator<R>(deal_with_stderr: DealWithStderr, input: R, cmd_args: (String, Vec<String>)) -> io::Result<BufReader<ChildStdout>>
+pub fn process_as_iterator<R>(deal_with_stderr: DealWithStderr, input_opt: Option<R>, cmd_args: (String, Vec<String>)) -> io::Result<BufReader<ChildStdout>>
     where R: Read + Send + 'static
 {
-    println!("{:?}", cmd_args);
+    // Build up the command from the arguments
     let (exe, args) = cmd_args;
     let mut cmd = Command::new(exe);
     for arg in args { cmd.arg(arg); }
 
-    cmd.stdin(Stdio::piped());
+    // setup stdout
     cmd.stdout(Stdio::piped());
+    if let Some(_) = input_opt {
+        cmd.stdin(Stdio::piped());
+    }
+
+    // setup stderr
     match deal_with_stderr {
       DealWithStderr::Parent => {}
       DealWithStderr::Ignore => {
-          // connecting to /dev/null would be better
+          // connecting to /dev/null would be better, but stderr should be small anyways
           cmd.stderr(Stdio::piped());
       }
       DealWithStderr::FailOnOutput => { cmd.stderr(Stdio::piped()); }
@@ -69,22 +79,25 @@ pub fn process_as_iterator<R>(deal_with_stderr: DealWithStderr, input: R, cmd_ar
         }
     }
 
-    // feed input to stdin and then wait for the process to exit successfully
-    {
+    // feed input to stdin
+    if let Some(input) = input_opt {
         let input_mutex = Mutex::new(input);
         thread::spawn(move || {
             let mut inp = input_mutex.lock().unwrap();
             io::copy(inp.deref_mut(), &mut stdin)
               .expect("error writing stdin");
-
-            // assert that the process exits successfully
-            let result = process.wait()
-                  .expect("error writing for the process to stop");
-            if !result.success() {
-                panic!("non-zero exit code {:?}", result.code());
-            }
         });
     }
+
+    // wait for the process to exit successfully
+    thread::spawn(move || {
+        // assert that the process exits successfully
+        let result = process.wait()
+              .expect("error writing for the process to stop");
+        if !result.success() {
+            panic!("non-zero exit code {:?}", result.code());
+        }
+    });
 
     Ok(BufReader::new(stdout))
 }
