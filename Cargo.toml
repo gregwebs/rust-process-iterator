@@ -2,4 +2,8 @@
 name = "process-iterator"
 version = "0.1.0"
 
+[lib]
+name = "process_iterator"
+path = "src/lib.rs"
+
 [dependencies]
