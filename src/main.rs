@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 extern crate process_iterator;
-use process_iterator::{process_as_iterator, DealWithStderr};
+use process_iterator::{process_as_iterator, DealWithOutput};
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -10,8 +10,9 @@ pub fn main(){
 //   let (tx, rx) = mpsc::channel();
     let f = File::open("unsorted.txt").unwrap();
 
+    // let some_in: Option<File> = None;
     let mut input_stream = 
-            process_as_iterator(DealWithStderr::Parent,
+            process_as_iterator(DealWithOutput::Parent,
                 Some(f)
              ,  streams::sort_cmd(&vec![])
              ).expect("process iterator failure");
