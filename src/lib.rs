@@ -8,12 +8,15 @@ use std::thread;
 use std::sync::Mutex;
 use std::ops::DerefMut;
 
+use std::os::unix::io::FromRawFd;
+use std::os::unix::io::AsRawFd;
+
 
 pub enum Output {
     Parent,
     Ignore,
     FailOnOutput,
-    LogToFile(Box<Path>),
+    ToFile(Box<Path>),
 }
 
 pub fn output() -> DealWithOutput {
@@ -45,11 +48,11 @@ pub fn process_as_consumer<R: Read>(
     let mut cmd = build_command(cmd_args);
 
     cmd.stdin(Stdio::piped());
-    setup_stderr(&deal_with.stderr, &mut cmd);
+    setup_stderr(&deal_with.stderr, &mut cmd)?;
     match deal_with.stdout {
         None => {}
         Some(ref stdout) => {
-            setup_stdout(&stdout, &mut cmd);
+            setup_stdout(&stdout, &mut cmd)?;
         }
     }
 
@@ -94,7 +97,7 @@ pub fn process_as_iterator<R>(deal_with: &mut DealWithOutput, input_opt: Option<
         cmd.stdin(Stdio::piped());
     }
 
-    setup_stderr(&deal_with.stderr, &mut cmd);
+    setup_stderr(&deal_with.stderr, &mut cmd)?;
 
     let mut process = cmd.spawn()?;
     let stdout = process.stdout.take().expect("impossible! no stdout");
@@ -126,29 +129,49 @@ pub fn process_as_iterator<R>(deal_with: &mut DealWithOutput, input_opt: Option<
 }
 
 
-fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> () {
+fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> io::Result<()> {
     // setup stderr
     match deal_with_stderr {
       &Output::Parent => {}
       &Output::Ignore => {
           cmd.stderr(Stdio::null());
       }
-      &Output::FailOnOutput => { cmd.stderr(Stdio::piped()); }
-      &Output::LogToFile(_) => { cmd.stderr(Stdio::piped()); }
+      &Output::FailOnOutput => {
+          cmd.stderr(Stdio::piped());
+      }
+      &Output::ToFile(ref path) => {
+          // for windows should be
+          // cmd.stderr(Stdio::piped());
+          let file = File::open(path)?;
+          unsafe {
+            cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
+          }
+      }
     }
+    Ok(())
 }
 
 
-fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> () {
+fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> io::Result<()> {
     // setup stderr
     match deal_with_stdout {
       &Output::Parent => {}
       &Output::Ignore => {
           cmd.stdout(Stdio::null());
       }
-      &Output::FailOnOutput => { cmd.stdout(Stdio::piped()); }
-      &Output::LogToFile(_) => { cmd.stdout(Stdio::piped()); }
+      &Output::FailOnOutput => {
+          cmd.stdout(Stdio::piped());
+      }
+      &Output::ToFile(ref path) => {
+          // for windows should be
+          // cmd.stdout(Stdio::piped());
+          let file = File::open(path)?;
+          unsafe {
+            cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
+          }
+      }
     }
+    Ok(())
 }
 
 
@@ -172,8 +195,12 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
               panic!("got unexpected stderr");
             }
         });
-    } else {
-        if let &Output::LogToFile(ref path) = deal_with_output {
+    }
+
+    /* on unix this is already setup.
+       On Windows:
+    else {
+        if let &Output::ToFile(ref path) = deal_with_output {
             let mut handle = opt_handle.take().expect("impossible! no stderr");
             let mut file = File::open(path)?;
             let _ = thread::spawn(move || {
@@ -182,6 +209,7 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
             });
         }
     }
+    */
 
     Ok(())
 }
