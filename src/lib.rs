@@ -16,11 +16,13 @@ pub enum Output {
     Parent,
     Ignore,
     FailOnOutput,
-    ToFile(PathBuf),
+    ToFd(File),
+    // only works on Unix
+    ToPath(PathBuf),
 }
 
-pub fn output_to_file(path: &str) -> Output {
-    Output::ToFile(PathBuf::from(path))
+pub fn output_to_path(path: &str) -> Output {
+    Output::ToPath(PathBuf::from(path))
 }
 
 pub fn output() -> DealWithOutput {
@@ -143,15 +145,13 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stderr(Stdio::piped());
       }
-      &Output::ToFile(ref path) => {
-          if cfg!(windows) {
-              cmd.stderr(Stdio::piped());
-          } else {
-              let file = File::create(path)?;
-              unsafe {
-                cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
-              }
+      &Output::ToFd(ref file) => {
+          unsafe {
+            cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
           }
+      }
+      &Output::ToPath(_) => {
+          cmd.stderr(Stdio::piped());
       }
     }
     Ok(())
@@ -168,15 +168,13 @@ fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stdout(Stdio::piped());
       }
-      &Output::ToFile(ref path) => {
-          if cfg!(windows) {
-              cmd.stdout(Stdio::piped());
-          } else {
-              let file = File::create(path)?;
-              unsafe {
-                cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
-              }
+      &Output::ToFd(ref file) => {
+          unsafe {
+            cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
           }
+      }
+      &Output::ToPath(_) => {
+          cmd.stdout(Stdio::piped());
       }
     }
     Ok(())
@@ -204,15 +202,13 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
             }
         });
     } else {
-        if let &Output::ToFile(ref path) = deal_with_output {
-            if cfg!(windows) {
-                let mut handle = opt_handle.take().expect("impossible! no output handle");
-                let mut file = File::create(path)?;
-                let _ = thread::spawn(move || {
-                    io::copy(&mut handle, &mut file)
-                      .expect("error writing output to a file");
-                });
-            }
+        if let &Output::ToPath(ref path) = deal_with_output {
+            let mut handle = opt_handle.take().expect("impossible! no output handle");
+            let mut file = File::create(path)?;
+            let _ = thread::spawn(move || {
+                io::copy(&mut handle, &mut file)
+                  .expect("error writing output to a file");
+            });
         }
     }
 
