@@ -67,7 +67,7 @@ pub fn process_as_consumer<R: Read>(
     match deal_with.stdout {
         None => {}
         Some(ref stdout) => {
-            output_optional_handle(&stdout, &mut process.stderr)?;
+            output_optional_handle(&stdout, &mut process.stdout)?;
         }
     }
 
