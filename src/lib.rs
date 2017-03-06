@@ -8,8 +8,8 @@ use std::thread;
 use std::sync::Mutex;
 use std::ops::DerefMut;
 
-// use std::os::unix::io::FromRawFd;
-// use std::os::unix::io::AsRawFd;
+use std::os::unix::io::FromRawFd;
+use std::os::unix::io::AsRawFd;
 
 
 pub enum Output {
@@ -143,14 +143,15 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stderr(Stdio::piped());
       }
-      &Output::ToFile(_) => {
-          cmd.stderr(Stdio::piped());
-          /*
-          let file = File::create(path)?;
-          unsafe {
-            cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
+      &Output::ToFile(ref path) => {
+          if cfg!(windows) {
+              cmd.stderr(Stdio::piped());
+          } else {
+              let file = File::create(path)?;
+              unsafe {
+                cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
+              }
           }
-          */
       }
     }
     Ok(())
@@ -167,14 +168,15 @@ fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stdout(Stdio::piped());
       }
-      &Output::ToFile(_) => {
-          cmd.stdout(Stdio::piped());
-          /*
-          let file = File::create(path)?;
-          unsafe {
-            cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
+      &Output::ToFile(ref path) => {
+          if cfg!(windows) {
+              cmd.stdout(Stdio::piped());
+          } else {
+              let file = File::create(path)?;
+              unsafe {
+                cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
+              }
           }
-          */
       }
     }
     Ok(())
@@ -203,12 +205,14 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
         });
     } else {
         if let &Output::ToFile(ref path) = deal_with_output {
-            let mut handle = opt_handle.take().expect("impossible! no output handle");
-            let mut file = File::create(path)?;
-            let _ = thread::spawn(move || {
-                io::copy(&mut handle, &mut file)
-                  .expect("error writing output to a file");
-            });
+            if cfg!(windows) {
+                let mut handle = opt_handle.take().expect("impossible! no output handle");
+                let mut file = File::create(path)?;
+                let _ = thread::spawn(move || {
+                    io::copy(&mut handle, &mut file)
+                      .expect("error writing output to a file");
+                });
+            }
         }
     }
 
