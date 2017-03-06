@@ -8,8 +8,8 @@ use std::thread;
 use std::sync::Mutex;
 use std::ops::DerefMut;
 
-use std::os::unix::io::FromRawFd;
-use std::os::unix::io::AsRawFd;
+// use std::os::unix::io::FromRawFd;
+// use std::os::unix::io::AsRawFd;
 
 
 pub enum Output {
@@ -143,13 +143,14 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stderr(Stdio::piped());
       }
-      &Output::ToFile(ref path) => {
-          // for windows should be
-          // cmd.stderr(Stdio::piped());
+      &Output::ToFile(_) => {
+          cmd.stderr(Stdio::piped());
+          /*
           let file = File::open(path)?;
           unsafe {
             cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
           }
+          */
       }
     }
     Ok(())
@@ -166,13 +167,14 @@ fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::FailOnOutput => {
           cmd.stdout(Stdio::piped());
       }
-      &Output::ToFile(ref path) => {
-          // for windows should be
-          // cmd.stdout(Stdio::piped());
+      &Output::ToFile(_) => {
+          cmd.stdout(Stdio::piped());
+          /*
           let file = File::open(path)?;
           unsafe {
             cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
           }
+          */
       }
     }
     Ok(())
@@ -199,11 +201,7 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
               panic!("got unexpected stderr");
             }
         });
-    }
-
-    /* on unix this is already setup.
-       On Windows:
-    else {
+    } else {
         if let &Output::ToFile(ref path) = deal_with_output {
             let mut handle = opt_handle.take().expect("impossible! no stderr");
             let mut file = File::open(path)?;
@@ -213,7 +211,6 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
             });
         }
     }
-    */
 
     Ok(())
 }
