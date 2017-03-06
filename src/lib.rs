@@ -15,9 +15,12 @@ use std::os::unix::io::AsRawFd;
 pub enum Output {
     Parent,
     Ignore,
+    // Check for any output in a background thread
+    // Useful to assert that stderr has no output
     FailOnOutput,
+    // only works on Unix, the most efficient
     ToFd(File),
-    // only works on Unix
+    // Write to this file in a background thread
     ToPath(PathBuf),
 }
 
@@ -44,7 +47,13 @@ impl DealWithOutput {
 pub struct DealWithOutput { stderr: Output, stdout: Option<Output> }
 
 
-// Feed the input as stdin to the process and wait for the process to finish
+// Provide a consumer (terminating iterator) interface to a process.
+//
+// Start a process for the given exe and args.
+// Handle stderr and stdout in a non-blocking way according to the given DealWithOutput
+//
+// Feed the input as stdin to the process and then wait for the process to finish
+// Return the result of the process.
 pub fn process_as_consumer<R: Read>(
     deal_with: &mut DealWithOutput,
     mut input: R,
@@ -79,19 +88,19 @@ pub fn process_as_consumer<R: Read>(
 }
 
 
-// Provide an iterator interface to a process
+// Provide an iterator interface to a process.
 //
 // Start a process for the given exe and args.
-// Return a buffer or the error encountered when starting the process
+// Return a buffer of stdout or the error encountered when starting the process
 //
 // Feed input (if given) to its stdin (in a separate thread)
-// Return a reader of the stdout
 //
-// Check stder, and wiat for the exit code on separate threads
+// Wait for the exit code on a separate thread
+// Handle stderr in a non-blocking way according to the given DealWithOutput.stderr
 //
-// If any of the threads have failures, including if the proces has a non-zero exit code,
+// If any of the threads have failures, including if the process has a non-zero exit code,
 // panic in the that separate thread.
-// TODO: the caller should be signalled about the error
+// TODO: the caller should be signalled about any errors occurring in the background.
 pub fn process_as_iterator<R>(deal_with: &mut DealWithOutput, input_opt: Option<R>, cmd_args: (String, Vec<String>)) -> io::Result<BufReader<ChildStdout>>
     where R: Read + Send + 'static
 {
