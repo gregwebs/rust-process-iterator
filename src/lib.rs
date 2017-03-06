@@ -36,8 +36,11 @@ pub struct DealWithOutput { stderr: Output, stdout: Option<Output> }
 
 
 // Feed the input as stdin to the process and wait for the process to finish
-pub fn process_as_consumer<R>(deal_with: &mut DealWithOutput, mut input: R, cmd_args: (String, Vec<String>)) -> io::Result<ExitStatus>
-    where R: Read
+pub fn process_as_consumer<R: Read>(
+    deal_with: &mut DealWithOutput,
+    mut input: R,
+    cmd_args: (String, Vec<String>))
+    -> io::Result<ExitStatus>
 {
     let mut cmd = build_command(cmd_args);
 
@@ -61,9 +64,7 @@ pub fn process_as_consumer<R>(deal_with: &mut DealWithOutput, mut input: R, cmd_
         }
     }
 
-    io::copy(&mut input, &mut stdin)
-      .expect("error writing stdin");
-
+    io::copy(&mut input, &mut stdin)?;
     let status = process.wait()?;
     Ok(status)
 }
