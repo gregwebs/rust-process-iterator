@@ -130,8 +130,7 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> () {
     match deal_with_stderr {
       &Output::Parent => {}
       &Output::Ignore => {
-          // connecting to /dev/null would be better, but stderr should be small anyways
-          cmd.stderr(Stdio::piped());
+          cmd.stderr(Stdio::null());
       }
       &Output::FailOnOutput => { cmd.stderr(Stdio::piped()); }
       &Output::LogToFile(_) => { cmd.stderr(Stdio::piped()); }
@@ -144,8 +143,7 @@ fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> () {
     match deal_with_stdout {
       &Output::Parent => {}
       &Output::Ignore => {
-          // connecting to /dev/null would be better, but stderr should be small anyways
-          cmd.stdout(Stdio::piped());
+          cmd.stdout(Stdio::null());
       }
       &Output::FailOnOutput => { cmd.stdout(Stdio::piped()); }
       &Output::LogToFile(_) => { cmd.stdout(Stdio::piped()); }
