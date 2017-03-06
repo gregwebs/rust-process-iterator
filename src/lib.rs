@@ -3,7 +3,7 @@ use std::io::prelude::*;
 use std::io::{BufReader};
 use std::fs::File;
 use std::process::{ChildStdout, Command, Stdio, ExitStatus};
-use std::path::Path;
+use std::path::{PathBuf};
 use std::thread;
 use std::sync::Mutex;
 use std::ops::DerefMut;
@@ -16,7 +16,11 @@ pub enum Output {
     Parent,
     Ignore,
     FailOnOutput,
-    ToFile(Box<Path>),
+    ToFile(PathBuf),
+}
+
+pub fn output_to_file(path: &str) -> Output {
+    Output::ToFile(PathBuf::from(path))
 }
 
 pub fn output() -> DealWithOutput {
