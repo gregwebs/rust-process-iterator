@@ -41,9 +41,13 @@ pub fn process_as_consumer<R>(deal_with: &mut DealWithOutput, mut input: R, cmd_
 {
     let mut cmd = build_command(cmd_args);
 
-    // being a consumer means there is no stdout
-
     setup_stderr(&deal_with.stderr, &mut cmd);
+    match deal_with.stdout {
+        None => {}
+        Some(ref stdout) => {
+            setup_stdout(&stdout, &mut cmd);
+        }
+    }
 
     let mut process = cmd.spawn()?;
     let mut stdin = process.stdin.take().expect("impossible! no stdin");
@@ -130,6 +134,20 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> () {
       }
       &Output::FailOnOutput => { cmd.stderr(Stdio::piped()); }
       &Output::LogToFile(_) => { cmd.stderr(Stdio::piped()); }
+    }
+}
+
+
+fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> () {
+    // setup stderr
+    match deal_with_stdout {
+      &Output::Parent => {}
+      &Output::Ignore => {
+          // connecting to /dev/null would be better, but stderr should be small anyways
+          cmd.stdout(Stdio::piped());
+      }
+      &Output::FailOnOutput => { cmd.stdout(Stdio::piped()); }
+      &Output::LogToFile(_) => { cmd.stdout(Stdio::piped()); }
     }
 }
 
