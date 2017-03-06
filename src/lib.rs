@@ -146,7 +146,7 @@ fn setup_stderr(deal_with_stderr: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::ToFile(_) => {
           cmd.stderr(Stdio::piped());
           /*
-          let file = File::open(path)?;
+          let file = File::create(path)?;
           unsafe {
             cmd.stderr(Stdio::from_raw_fd(file.as_raw_fd()));
           }
@@ -170,7 +170,7 @@ fn setup_stdout(deal_with_stdout: &Output, cmd: &mut Command) -> io::Result<()> 
       &Output::ToFile(_) => {
           cmd.stdout(Stdio::piped());
           /*
-          let file = File::open(path)?;
+          let file = File::create(path)?;
           unsafe {
             cmd.stdout(Stdio::from_raw_fd(file.as_raw_fd()));
           }
@@ -204,7 +204,7 @@ fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, o
     } else {
         if let &Output::ToFile(ref path) = deal_with_output {
             let mut handle = opt_handle.take().expect("impossible! no output handle");
-            let mut file = File::open(path)?;
+            let mut file = File::create(path)?;
             let _ = thread::spawn(move || {
                 io::copy(&mut handle, &mut file)
                   .expect("error writing output to a file");
