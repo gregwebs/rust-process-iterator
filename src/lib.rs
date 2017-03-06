@@ -41,6 +41,7 @@ pub fn process_as_consumer<R>(deal_with: &mut DealWithOutput, mut input: R, cmd_
 {
     let mut cmd = build_command(cmd_args);
 
+    cmd.stdin(Stdio::piped());
     setup_stderr(&deal_with.stderr, &mut cmd);
     match deal_with.stdout {
         None => {}
@@ -96,15 +97,15 @@ pub fn process_as_iterator<R>(deal_with: &mut DealWithOutput, input_opt: Option<
 
     let mut process = cmd.spawn()?;
     let stdout = process.stdout.take().expect("impossible! no stdout");
-    let mut stdin = process.stdin.take().expect("impossible! no stdin");
 
     output_optional_handle(&deal_with.stderr, &mut process.stderr)?;
 
     // feed input to stdin
     if let Some(input) = input_opt {
+        let mut stdin = process.stdin.take().expect("impossible! no stdin");
         let input_mutex = Mutex::new(input);
         thread::spawn(move || {
-            let mut inp = input_mutex.lock().unwrap();
+            let mut inp = input_mutex.lock().expect("locking stdin input");
             io::copy(inp.deref_mut(), &mut stdin)
               .expect("error writing stdin");
         });
