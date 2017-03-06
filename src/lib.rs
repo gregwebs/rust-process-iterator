@@ -193,21 +193,21 @@ fn build_command(cmd_args: (String, Vec<String>)) -> Command {
 
 fn output_optional_handle<R: Read + Send + 'static>(deal_with_output: &Output, opt_handle: &mut Option<R>) -> io::Result<()> {
     if let &Output::FailOnOutput = deal_with_output {
-        let handle = opt_handle.take().expect("impossible! no stderr");
+        let handle = opt_handle.take().expect("impossible! no output handle");
         let _ = thread::spawn(move || {
-            let mut stderr_output = Vec::new();
-            let size = handle.take(1).read_to_end(&mut stderr_output).expect("error reading stdout");
+            let mut output = Vec::new();
+            let size = handle.take(1).read_to_end(&mut output).expect("error reading output");
             if size > 0 {
-              panic!("got unexpected stderr");
+              panic!("got unexpected output");
             }
         });
     } else {
         if let &Output::ToFile(ref path) = deal_with_output {
-            let mut handle = opt_handle.take().expect("impossible! no stderr");
+            let mut handle = opt_handle.take().expect("impossible! no output handle");
             let mut file = File::open(path)?;
             let _ = thread::spawn(move || {
                 io::copy(&mut handle, &mut file)
-                  .expect("error writing stderr to a log file");
+                  .expect("error writing output to a file");
             });
         }
     }
