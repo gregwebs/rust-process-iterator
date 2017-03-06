@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 extern crate process_iterator;
-use process_iterator::{process_as_iterator, DealWithOutput};
+use process_iterator::{process_as_iterator, output, Output};
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,7 +12,7 @@ pub fn main(){
 
     // let some_in: Option<File> = None;
     let mut input_stream = 
-            process_as_iterator(DealWithOutput::Parent,
+            process_as_iterator(output().stderr(Output::Parent),
                 Some(f)
              ,  streams::sort_cmd(&vec![])
              ).expect("process iterator failure");
