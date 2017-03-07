@@ -72,17 +72,23 @@ pub fn process_as_consumer<R: Read>(
     }
 
     let mut process = cmd.spawn()?;
-    let mut stdin = process.stdin.take().expect("impossible! no stdin");
 
-    output_optional_handle(&deal_with.stderr, &mut process.stderr)?;
-    match deal_with.stdout {
-        None => {}
-        Some(ref stdout) => {
-            output_optional_handle(&stdout, &mut process.stdout)?;
+    // Introducing this scope will drop stdin
+    // That will close the handle so the process can terminate
+    {
+        let mut stdin = process.stdin.take().expect("impossible! no stdin");
+
+        output_optional_handle(&deal_with.stderr, &mut process.stderr)?;
+        match deal_with.stdout {
+            None => {}
+            Some(ref stdout) => {
+                output_optional_handle(&stdout, &mut process.stdout)?;
+            }
         }
+
+        io::copy(&mut input, &mut stdin)?;
     }
 
-    io::copy(&mut input, &mut stdin)?;
     let status = process.wait()?;
     Ok(status)
 }
