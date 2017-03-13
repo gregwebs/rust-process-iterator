@@ -95,6 +95,7 @@ pub fn process_read_consumer<R: Read>(
 // Return a buffer of stdout or the error encountered when starting the process
 //
 // Feed input (if given) to its stdin (in a separate thread)
+// If no stdin is given you will need to give None::<File>
 //
 // Wait for the exit code on a separate thread
 // Handle stderr in a non-blocking way according to the stderr option
