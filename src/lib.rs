@@ -88,28 +88,6 @@ pub fn process_read_consumer<R: Read>(
     Ok(status)
 }
 
-pub struct ProcessReaderArgs<R: Read + Send + 'static> {
-    stderr: Output,
-    stdin: Option<R>,
-}
-
-pub fn process_reader_args<R: Read + Send + 'static>() -> ProcessReaderArgs<R> {
-    ProcessReaderArgs { stderr: Output::Parent, stdin: None }
-}
-
-impl <R: Read + Send + 'static> ProcessReaderArgs<R> {
-    pub fn stderr(&mut self, stderr: Output) -> &mut Self {
-        self.stderr = stderr;
-        self
-    }
-    pub fn stdin(&mut self, stdin: R) -> &mut Self {
-        self.stdin = Some(stdin);
-        self
-    }
-    pub fn default(&mut self) -> &mut Self {
-        self
-    }
-}
 
 // Stream data through a process using readers
 //
@@ -124,29 +102,29 @@ impl <R: Read + Send + 'static> ProcessReaderArgs<R> {
 // If any of the threads have failures, including if the process has a non-zero exit code,
 // that will be reflected in `ChildStream.wait`
 pub fn process_as_reader<R>(
-	args: &mut ProcessReaderArgs<R>,
+	stdin_opt: Option<R>,
+    stderr: Output,
 	cmd_args: (String, Vec<String>)) -> io::Result<ChildStream>
     where R: Read + Send + 'static,
 {
     let mut cmd = build_command(cmd_args);
-    let stdin = args.stdin.take();
 
     // setup stdout
     cmd.stdout(Stdio::piped());
-    if let Some(_) = stdin {
+    if let Some(_) = stdin_opt {
         cmd.stdin(Stdio::piped());
     }
 
-    setup_stderr(&args.stderr, &mut cmd)?;
+    setup_stderr(&stderr, &mut cmd)?;
 
     let mut process = cmd.spawn()?;
     let stdout = process.stdout.take().expect("impossible! no stdout");
 
-    // output_optional_handle(&args.stderr, &mut process.stderr)?;
+    // output_optional_handle(&stderr, &mut process.stderr)?;
 
     let (send_result, receiver) = mpsc::channel();
     // feed input to stdin
-    if let Some(input) = stdin {
+    if let Some(input) = stdin_opt {
         let mut stdin = process.stdin.take().expect("impossible! no stdin");
         let input_mutex = Mutex::new(input);
         let sender = send_result.clone();

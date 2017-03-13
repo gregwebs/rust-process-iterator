@@ -1,5 +1,5 @@
 extern crate process_iterator;
-use process_iterator::{process_as_reader, process_reader_args, process_read_consumer, output, Output};
+use process_iterator::{process_as_reader, process_read_consumer, output, Output};
 
 use std::fs::File;
 use std::iter::{Iterator};
@@ -10,7 +10,7 @@ fn sort_iterator() {
     let f = File::open("tests/files/unsorted.txt").unwrap();
 
     let mut child_stream =
-            process_as_reader(process_reader_args().stdin(f),
+            process_as_reader(Some(f), Output::Parent,
                  streams::sort_cmd(&vec![])
               ).expect("process iterator failure");
 
