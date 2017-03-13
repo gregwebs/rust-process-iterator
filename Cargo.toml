@@ -7,3 +7,4 @@ name = "process_iterator"
 path = "src/lib.rs"
 
 [dependencies]
+log = "*"
