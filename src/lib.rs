@@ -116,11 +116,10 @@ impl <R: Read + Send + 'static> ProcessReaderArgs<R> {
 // Feed input (if given) to its stdin (in a separate thread)
 //
 // Wait for the exit code on a separate thread
-// Handle stderr in a non-blocking way according to the given DealWithOutput.stderr
+// Handle stderr in a non-blocking way according to the stderr option
 //
 // If any of the threads have failures, including if the process has a non-zero exit code,
-// panic in the that separate thread.
-// TODO: the caller should be signalled about any errors occurring in the background.
+// that will be reflected in `ChildStream.wait`
 pub fn process_as_reader<R>(
 	args: &mut ProcessReaderArgs<R>,
 	cmd_args: (String, Vec<String>)) -> io::Result<ChildStream>
