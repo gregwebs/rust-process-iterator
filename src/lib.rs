@@ -106,6 +106,9 @@ impl <R: Read + Send + 'static> ProcessReaderArgs<R> {
         self.stdin = Some(stdin);
         self
     }
+    pub fn default(&mut self) -> &mut Self {
+        self
+    }
 }
 
 // Stream data through a process using readers
@@ -123,7 +126,7 @@ impl <R: Read + Send + 'static> ProcessReaderArgs<R> {
 pub fn process_as_reader<R>(
 	args: &mut ProcessReaderArgs<R>,
 	cmd_args: (String, Vec<String>)) -> io::Result<ChildStream>
-    where R: Read + Send + 'static
+    where R: Read + Send + 'static,
 {
     let mut cmd = build_command(cmd_args);
     let stdin = args.stdin.take();
