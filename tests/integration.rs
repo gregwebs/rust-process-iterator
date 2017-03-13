@@ -52,6 +52,6 @@ mod streams {
     }
 
     pub fn gzipped_cmd() -> (String, Vec<String>) {
-        ("/bin/gzip".to_owned(), Vec::new())
+        ("/bin/gzip".to_owned(), vec!["--no-name".to_owned()])
     }
 }
