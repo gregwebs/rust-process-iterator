@@ -1,11 +1,16 @@
 [package]
-name = "process-iterator"
 version = "0.2.0"
+name = "process-iterator"
+description = "Use an external process as an iterator (adaptor or consuer)."
+repository = "https://github.com/gregwebs/rust-process-iterator"
+readme = "README.md"
+license = "MIT"
 exclude = ["bin/*"]
+authors = ["Greg Weber"]
 
 [lib]
 name = "process_iterator"
 path = "src/lib.rs"
 
 [dependencies]
-log = "*"
+log = ">= 0.3"
