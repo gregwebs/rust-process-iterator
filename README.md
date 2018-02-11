@@ -17,6 +17,9 @@ One difficult aspect of streaming is error handling. `process_as_reader` additio
 Things in this package should look somewhat familiar to the `Child` data type that is getting wrapped.
 Of notable addition is the `Output` type, in particular `Output::ToFd` which directs the command builder to direct output directly to a given file (which must have a valid descriptor).
 
+Please look at the [test suite](https://github.com/gregwebs/rust-process-iterator/blob/master/tests/integration.rs)
+for more example usage.
+
 
 # Development
 
