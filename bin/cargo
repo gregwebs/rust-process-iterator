@@ -1,0 +1,15 @@
+#!/bin/bash -eu
+
+set -eu
+set -o pipefail
+
+# Go back to project root
+cd "$( dirname "$0" )/../"
+
+VERSION=1.23.0-stable-2018-01-01
+CURRENT_PATH=$(docker run -it --rm "clux/muslrust:$VERSION" /bin/sh -c 'echo $PATH')
+docker run -it --rm \
+    -v "$PWD:$PWD" -w "$PWD" \
+    -v "$PWD/.cargo:/root/.cargo" \
+    -e "PATH=$CURRENT_PATH:/root/.cargo/bin" \
+    "clux/muslrust:$VERSION" cargo "$@"

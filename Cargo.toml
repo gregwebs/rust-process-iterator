@@ -1,6 +1,7 @@
 [package]
 name = "process-iterator"
 version = "0.2.0"
+exclude = ["bin/*"]
 
 [lib]
 name = "process_iterator"
